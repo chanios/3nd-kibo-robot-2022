@@ -12,7 +12,7 @@ public class Environment {
 
     private HashMap<Integer, Box> kiz;
 
-    private HashMap<Integer, Goal> goals;
+    public HashMap<Integer, Goal> goals;
     // The Environment constructor
     public Environment() {
         this.koz = new HashMap<Integer, Box>();
@@ -34,9 +34,9 @@ public class Environment {
         ));
 
 
-        // Look For Nearby ar tag and lazer em
+        // Look For Nearby ar tag and laser em
         this.addGoal(new Goal(
-                "lazer_target"
+                "laser"
         ));
 
 
@@ -50,7 +50,7 @@ public class Environment {
 
         // Look For Nearby ar tag and lazer em
         this.addGoal(new Goal(
-                "lazer_target"
+                "laser"
         ));
 
         // Point2
@@ -60,20 +60,33 @@ public class Environment {
                 "point"
         ));
 
+        System.out.println(goals);
+
+        return;
     }
     public Integer getTotalGoal() {
         return this.goals.size();
     }
-    public void addGoal(Goal g) {
-        this.goals.put(this.goals.size(),g);
+    public Goal addGoal(Goal g) {
+        goals.put(goals.size(),g);
+        return g;
     }
     public Goal getGoal(Integer id) {
-        return this.goals.get(id);
+        return goals.get(id);
     }
 
     public boolean CanGo(Point p) {
+        double size = 0.3;
+        Box box = new Box(
+                p.getX() - size,
+                p.getY() - size,
+                p.getZ() - size,
+                p.getX() + size,
+                p.getY() + size,
+                p.getZ() + size
+        );
         for (HashMap.Entry<Integer, Box> set : koz.entrySet()) {
-            if(isPointInsideAABB(p, set.getValue())) return false;
+            if(intersect(box, set.getValue())) return false;
         }
 
         for (HashMap.Entry<Integer, Box> set : kiz.entrySet()) {
@@ -81,6 +94,12 @@ public class Environment {
         }
 
         return false;
+    }
+    public double distance(Box box, Point point) {
+        double dx = Math.max(box.x_min - point.getX(), point.getX() - box.x_max);
+        double dy = Math.max(box.y_min - point.getY(), point.getY() - box.y_max);
+        double dz = Math.max(box.z_min - point.getZ(), point.getZ() - box.z_max);
+        return Math.sqrt(dx*dx + dy*dy + dz*dz);
     }
     public boolean isPointInsideAABB(Point point,Box box) {
         return (point.getX() >= box.x_min && point.getX() <= box.x_max) &&

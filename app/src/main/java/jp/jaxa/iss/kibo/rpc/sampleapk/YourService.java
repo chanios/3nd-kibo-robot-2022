@@ -13,6 +13,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfDouble;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 /**
  * Class meant to handle commands from the Ground Data System and execute them in Astrobee
@@ -32,13 +33,27 @@ public class YourService extends KiboRpcService {
 
     @Override
     protected void runPlan1(){
-        api.startMission();
+        // pre calculate path
 
         this.e = new Environment();
 
+        Point LastKnownPoint = this.getMyPosition();
+
+        for (Map.Entry<Integer, Goal> set : this.e.goals.entrySet()) {
+            Goal goal = set.getValue();
+            if(goal.type.equals("point")) {
+                goal.setPath(getPath(LastKnownPoint, goal.position));
+                LastKnownPoint = goal.position;
+            }
+        }
+
+        api.startMission();
+
+
         while(CurrentGoal < e.getTotalGoal()) {
+            System.out.println("Doing " + CurrentGoal + "/" + e.getTotalGoal());
             DoGoal(getCurrentGoal());
-            ++CurrentGoal;
+            CurrentGoal++;
         }
 
         api.reportMissionCompletion();
@@ -46,8 +61,10 @@ public class YourService extends KiboRpcService {
     private Goal getCurrentGoal() {
         return e.getGoal(CurrentGoal);
     }
-    private void getMyPosition() {
+    private Point getMyPosition() {
         Kinematics k = api.getRobotKinematics();
+
+        return k.getPosition();
     }
     private Quaternion getOrientation(Point a, Point b) {
         double[] crossed = computeCrossProduct(a,b);
@@ -82,13 +99,13 @@ public class YourService extends KiboRpcService {
         return crossProduct;
     }
     private void DoGoal(Goal goal) {
-        if(goal.type == "point") {
-            moveToWrapper(goal.position, goal.orientation);
-            ++point_count;
+        if(goal.type.equals("point")) {
+            moveToWrapper(goal.position, goal.orientation, goal.path);
+            point_count++;
             if(point_count == 1) {
                 api.reportPoint1Arrival();
             }
-        } else if(goal.type == "lazer_target") {
+        } else if(goal.type.equals("laser")) {
             //this.calibrateWithAruco();
             api.laserControl(true);
             laser_count++;
@@ -131,13 +148,39 @@ public class YourService extends KiboRpcService {
         api.saveMatImage(img, "test_img");
     }
 
-    private void moveToWrapper(Point point, Quaternion quaternion){
-        Result result = api.moveTo(point, quaternion, true);
-        Integer loopCounter = 0;
-        while(!result.hasSucceeded() && loopCounter < RETRY_MAX){
-            result = api.moveTo(point, quaternion, true);
-            ++loopCounter;
+    private Path getPath(Point a, Point b) {
+        System.out.println("Gettings Path from " + a + " to " + b);
+
+        Pathfinding pathfinding = new Pathfinding(e);
+
+        Path path = pathfinding.FindPath(a,b);
+
+        System.out.println("Found Path " + path.size() + " length");
+
+        return path;
+    }
+
+    private void moveToWrapper(Point point, Quaternion quaternion, Path path){
+
+        if(path == null) {
+            Result result = api.moveTo(point, quaternion, true);
+            Integer loopCounter = 0;
+            while(!result.hasSucceeded() && loopCounter < RETRY_MAX){
+                result = api.moveTo(point, quaternion, true);
+                loopCounter++;
+            }
+        } else {
+            for(Point p: path)
+            {
+                Result result = api.moveTo(p, quaternion, true);
+                Integer loopCounter = 0;
+                while(!result.hasSucceeded() && loopCounter < RETRY_MAX){
+                    result = api.moveTo(p, quaternion, true);
+                    loopCounter++;
+                }
+            }
         }
+
         return;
     }
 

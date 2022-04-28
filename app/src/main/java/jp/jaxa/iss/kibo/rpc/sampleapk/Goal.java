@@ -7,6 +7,7 @@ public class Goal {
     Point position;
     Quaternion orientation;
     String type;
+    Path path;
 
     public Goal(String type) {
         this.type = type;
@@ -16,5 +17,8 @@ public class Goal {
         this.position = position;
         this.orientation = orientation;
         this.type = type;
+    }
+    public void setPath(Path path) {
+        this.path = path;
     }
 }
