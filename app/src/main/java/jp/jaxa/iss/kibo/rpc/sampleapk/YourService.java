@@ -35,7 +35,7 @@ public class YourService extends KiboRpcService {
     protected void runPlan1(){
         this.e = new Environment();
 
-//        this.prePlanning();
+        this.prePlanning();
 
         api.startMission();
 
@@ -111,17 +111,17 @@ public class YourService extends KiboRpcService {
             api.laserControl(true);
             laser_count++;
             if(laser_count == 1) {
-                calibrateWithAruco(new Target().target1());
+                calibrateWithAruco(new TargetBoard().target1());
                 api.takeTarget1Snapshot();
             } else if(laser_count == 2) {
-                calibrateWithAruco(new Target().target2());
+                calibrateWithAruco(new TargetBoard().target2());
                 api.takeTarget2Snapshot();
             }
             api.laserControl(false);
         }
         return;
     }
-    private void calibrateWithAruco(Target target) {
+    private void calibrateWithAruco(TargetBoard targetBoard) {
         // get a camera image
         Mat img = api.getMatNavCam();
 
@@ -139,7 +139,7 @@ public class YourService extends KiboRpcService {
 
         Mat tvecs = new Mat();
 
-        Board board = Board.create(target.getObjPoints(), dict, target.getBoardIDs());
+        Board board = Board.create(targetBoard.getObjPoints(), dict, targetBoard.getBoardIDs());
 
         Aruco.detectMarkers(img, this.dict, corners, ids);
 

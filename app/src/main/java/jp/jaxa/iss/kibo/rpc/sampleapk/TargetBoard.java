@@ -8,7 +8,7 @@ import org.opencv.core.Point3;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Target {
+public class TargetBoard {
 
     private MatOfInt boardIDs;
     private ArrayList<Mat> objPoints;
@@ -21,7 +21,7 @@ public class Target {
         return boardIDs;
     }
 
-    public Target target1() {
+    public TargetBoard target1() {
 
         int[] id = new int[] { 1, 2, 3, 4 };
         boardIDs = new MatOfInt();
@@ -70,7 +70,7 @@ public class Target {
         return this;
     }
 
-    public Target target2() {
+    public TargetBoard target2() {
 
         int[] id = new int[] { 11, 12, 13, 14 };
         boardIDs = new MatOfInt();
