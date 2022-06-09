@@ -81,6 +81,19 @@ public class Pathfinding {
         }
         return false;
     }
+    public Point getRayPoint(Point a, Point b, double distance) {
+        double X1 = a.getX();
+        double Y1 = a.getY();
+        double Z1 = a.getZ();
+        double X2 = b.getX();
+        double Y2 = b.getY();
+        double Z2 = b.getZ();
+        double dX = X2-X1;
+        double dY = Y2-Y1;
+        double dZ = Z2-Z1;
+
+        return new Point(X2 + dX * distance, Y2 + dY * distance, Z2 + dZ * distance);
+    }
     public Path getOptimalPath(Path paths) {
         int i = 0;
         while (paths.size() - 2 > i) {
@@ -88,10 +101,27 @@ public class Pathfinding {
 
             Point next = paths.get(i+1);
             Point next2 = paths.get(i+2);
-            if(!RayCast(current, next) && !RayCast(current, next2)) {
+            Boolean next_collided = RayCast(current, next);
+            Boolean next2_collided = RayCast(current, next2);
+
+            if(!next_collided && !next2_collided) { // clear point optimization
                 paths.remove(i+1);
                 continue;
             }
+//            if(!next_collided && next2_collided) { // corner point optimization
+//                double factor = 0;
+//                while (factor < 2.0) {
+//                    factor += 0.1;
+//                    Point new_corner_point = getRayPoint(current, next, factor);
+//                    if(!RayCast(next, new_corner_point) && !RayCast(new_corner_point, next2) && !RayCast(current, new_corner_point)) {
+//                        paths.remove(i+1);
+//                        paths.remove(i+2);
+//                        paths.add(i+1,new_corner_point);
+//                        break;
+//                    }
+//                }
+//                continue;
+//            }
             i++;
         }
 

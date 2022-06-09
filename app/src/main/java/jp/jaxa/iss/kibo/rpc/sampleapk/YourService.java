@@ -8,12 +8,12 @@ import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
 
 import org.opencv.aruco.Aruco;
+import org.opencv.aruco.Board;
 import org.opencv.aruco.Dictionary;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDouble;
 
 import java.util.ArrayList;
-import java.util.Map;
 
 /**
  * Class meant to handle commands from the Ground Data System and execute them in Astrobee
@@ -27,24 +27,15 @@ public class YourService extends KiboRpcService {
 
     Integer point_count = 0;
 
+    Dictionary dict =  Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
+
     final Integer RETRY_MAX = 5;
 
     @Override
     protected void runPlan1(){
         this.e = new Environment();
 
-        // pre calculate path
-        Point LastPosition = this.getMyPosition();
-
-        int t = 0;
-        while (e.goals.size() > t) {
-            Goal goal = e.goals.get(t);
-            if(goal.type.equals("point")) {
-                goal.setPath(getPath(LastPosition, goal.position));
-                LastPosition = goal.position;
-            }
-            t++;
-        }
+//        this.prePlanning();
 
         api.startMission();
 
@@ -56,6 +47,21 @@ public class YourService extends KiboRpcService {
         }
 
         api.reportMissionCompletion();
+    }
+    private void prePlanning() {
+        // pre calculate path
+        Point lastPosition = this.getMyPosition();
+
+        int t = 0;
+        while (this.e.goals.size() > t) {
+            Goal goal = this.e.goals.get(t);
+            if(goal.type.equals("point")) {
+                goal.setPath(getPath(lastPosition, goal.position));
+                lastPosition = goal.position;
+            }
+            t++;
+        }
+        return;
     }
     private Point getMyPosition() {
         Kinematics k = api.getRobotKinematics();
@@ -102,32 +108,28 @@ public class YourService extends KiboRpcService {
                 api.reportPoint1Arrival();
             }
         } else if(goal.type.equals("laser")) {
-            //this.calibrateWithAruco();
             api.laserControl(true);
             laser_count++;
             if(laser_count == 1) {
+                calibrateWithAruco(new Target().target1());
                 api.takeTarget1Snapshot();
             } else if(laser_count == 2) {
+                calibrateWithAruco(new Target().target2());
                 api.takeTarget2Snapshot();
             }
             api.laserControl(false);
         }
         return;
     }
-    private void calibrateWithAruco() {
+    private void calibrateWithAruco(Target target) {
         // get a camera image
-
-        Dictionary dictionary =  Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
-
         Mat img = api.getMatNavCam();
 
         Mat ids = new Mat();
 
         double[][] co = api.getNavCamIntrinsics();
 
-        java.util.List<org.opencv.core.Mat> corners = new ArrayList();
-
-        Aruco.detectMarkers(img, dictionary, corners, ids);
+        java.util.List<org.opencv.core.Mat> corners = new ArrayList<>();
 
         Mat cameraMatrix = new MatOfDouble(co[0]);
 
@@ -137,11 +139,17 @@ public class YourService extends KiboRpcService {
 
         Mat tvecs = new Mat();
 
-        Aruco.estimatePoseSingleMarkers(corners, 0.05f, cameraMatrix, distCoeffs, rvecs, tvecs);
+        Board board = Board.create(target.getObjPoints(), dict, target.getBoardIDs());
+
+        Aruco.detectMarkers(img, this.dict, corners, ids);
+
+        Aruco.estimatePoseBoard(corners, ids, board, cameraMatrix, distCoeffs, rvecs, tvecs);
 
         Aruco.drawAxis(img, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1f);
 
         api.saveMatImage(img, "test_img");
+
+        return;
     }
 
     private Path getPath(Point a, Point b) {
