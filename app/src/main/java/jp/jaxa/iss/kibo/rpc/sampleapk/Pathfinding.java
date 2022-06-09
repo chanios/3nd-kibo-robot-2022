@@ -3,9 +3,7 @@ package jp.jaxa.iss.kibo.rpc.sampleapk;
 import android.util.SparseArray;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Map;
 
 import gov.nasa.arc.astrobee.types.Point;
 
@@ -13,7 +11,7 @@ public class Pathfinding {
 
     public Environment e;
 
-    double RESOLUTION = 0.1;
+    double RESOLUTION = 0.05;
 
     HashMap<Integer, Node> NODES = new HashMap<>();
 
@@ -64,54 +62,40 @@ public class Pathfinding {
         double dZ = Z2-Z1;
 
         // Start at A and interpolate along this vector
-        int steps = 20;
+        int steps = 10;
         int step = 0;
-        while (step++ < steps) {
+        while (step < steps) {
             double factor = (float)step / steps; // runs from 0 to 1 inclusive
             double x = X1 + dX * factor;
             double y = Y1 + dY * factor;
             double z = Z1 + dZ * factor;
 
             Point checkpoint = new Point(x,y,z);
-            System.out.println("Checking " + checkpoint);
+//            System.out.println("Checking " + checkpoint);
             if(!e.CanGo(checkpoint)) {
-                System.out.println(true);
+//                System.out.println(true);
                 return true;
             }
-            System.out.println(false);
+//            System.out.println(false);
+            step++;
         }
         return false;
     }
-    public Path OptimzePath(Path path) {
-        Point[] paths = path.toArray(new Point[path.size()]);
+    public Path getOptimalPath(Path paths) {
+        int i = 0;
+        while (paths.size() - 2 > i) {
+            Point current = paths.get(i);
 
-        for (int i = 0; i < paths.length; i++)
-        {
-            Point next = paths[i+1];
-            Point current = paths[i];
-            if(next != null) {
-                if(!RayCast(current, next)) {
-
-                }
+            Point next = paths.get(i+1);
+            Point next2 = paths.get(i+2);
+            if(!RayCast(current, next) && !RayCast(current, next2)) {
+                paths.remove(i+1);
+                continue;
             }
+            i++;
         }
 
-        Point current = null;
-        while(iterator.hasNext()){
-            Point point = iterator.next();
-            if(current != null && iterator.hasNext()) {
-                if(!RayCast(current, point)) {
-                    Point point2 = iterator.next();
-                    if(!RayCast(current, point2)) {
-
-                    }
-                    iterator.remove();
-                    continue;
-                }
-            }
-            current = point;
-        }
-        return path;
+        return paths;
     }
     public Path backTrace(Path path,Node node, Point goalPoint) {
         path.addFirst(goalPoint);
@@ -120,7 +104,8 @@ public class Pathfinding {
             node = node.parent;
             path.addFirst(node.point);
         }
-        OptimzePath(path);
+        getOptimalPath(path);
+        getOptimalPath(path);
         path.removeFirst();
         path.setComplete(true);
         return path;
@@ -150,7 +135,7 @@ public class Pathfinding {
             OPEN_NODES.remove(CurrentNode.key);
             CurrentNode.setClosed(true);
 
-            if(euclideanDistance(CurrentNode.point, b) < 0.3) {
+            if(euclideanDistance(CurrentNode.point, b) < 0.25) {
                 return backTrace(path, CurrentNode, b);
             }
 

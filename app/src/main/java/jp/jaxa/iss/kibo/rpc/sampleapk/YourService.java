@@ -23,8 +23,6 @@ public class YourService extends KiboRpcService {
 
     Environment e;
 
-    Integer CurrentGoal = 0;
-
     Integer laser_count = 0;
 
     Integer point_count = 0;
@@ -33,33 +31,31 @@ public class YourService extends KiboRpcService {
 
     @Override
     protected void runPlan1(){
-        // pre calculate path
-
         this.e = new Environment();
 
-        Point LastKnownPoint = this.getMyPosition();
+        // pre calculate path
+        Point LastPosition = this.getMyPosition();
 
-        for (Map.Entry<Integer, Goal> set : this.e.goals.entrySet()) {
-            Goal goal = set.getValue();
+        int t = 0;
+        while (e.goals.size() > t) {
+            Goal goal = e.goals.get(t);
             if(goal.type.equals("point")) {
-                goal.setPath(getPath(LastKnownPoint, goal.position));
-                LastKnownPoint = goal.position;
+                goal.setPath(getPath(LastPosition, goal.position));
+                LastPosition = goal.position;
             }
+            t++;
         }
 
         api.startMission();
 
-
-        while(CurrentGoal < e.getTotalGoal()) {
-            System.out.println("Doing " + CurrentGoal + "/" + e.getTotalGoal());
-            DoGoal(getCurrentGoal());
-            CurrentGoal++;
+        int i = 0;
+        while (e.goals.size() > i) {
+            Goal current = e.goals.get(i);
+            DoGoal(current);
+            i++;
         }
 
         api.reportMissionCompletion();
-    }
-    private Goal getCurrentGoal() {
-        return e.getGoal(CurrentGoal);
     }
     private Point getMyPosition() {
         Kinematics k = api.getRobotKinematics();
