@@ -10,6 +10,7 @@ import gov.nasa.arc.astrobee.types.Quaternion;
 import org.opencv.aruco.Aruco;
 import org.opencv.aruco.Board;
 import org.opencv.aruco.Dictionary;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDouble;
 
@@ -27,7 +28,7 @@ public class YourService extends KiboRpcService {
 
     Integer point_count = 0;
 
-    Dictionary dict =  Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
+    Dictionary dict;
 
     final Integer RETRY_MAX = 5;
 
@@ -35,13 +36,16 @@ public class YourService extends KiboRpcService {
     protected void runPlan1(){
         this.e = new Environment();
 
-        this.prePlanning();
+        this.dict = Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
 
         api.startMission();
 
         int i = 0;
         while (e.goals.size() > i) {
             Goal current = e.goals.get(i);
+            if(i == 1) {
+                this.prePlanning();
+            }
             DoGoal(current);
             i++;
         }
@@ -131,23 +135,35 @@ public class YourService extends KiboRpcService {
 
         java.util.List<org.opencv.core.Mat> corners = new ArrayList<>();
 
-        Mat cameraMatrix = new MatOfDouble(co[0]);
+        Mat cameraMatrix = new Mat(3, 3, CvType.CV_64FC1);
+        cameraMatrix.put(0, 0, co[0]);
 
-        Mat distCoeffs = new MatOfDouble(co[1]);
+        Mat distCoeffs = new Mat(1, 5, CvType.CV_64FC1);
+        distCoeffs.put(0, 0, co[1]);
+
+        System.out.println("img " + img);
+
+        System.out.println("cameraMatrix " + cameraMatrix);
+
+        System.out.println("distCoeffs " + distCoeffs);
 
         Mat rvecs = new Mat();
 
         Mat tvecs = new Mat();
 
-        Board board = Board.create(targetBoard.getObjPoints(), dict, targetBoard.getBoardIDs());
+        Board board = Board.create(targetBoard.getObjPoints(), this.dict, targetBoard.getBoardIDs());
 
         Aruco.detectMarkers(img, this.dict, corners, ids);
 
+        System.out.println("detectMarkers corners" + corners);
+
         Aruco.estimatePoseBoard(corners, ids, board, cameraMatrix, distCoeffs, rvecs, tvecs);
+
+        System.out.println("Board " + "rvecs: " + rvecs + "tvecs: " + tvecs);
 
         Aruco.drawAxis(img, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1f);
 
-        api.saveMatImage(img, "test_img");
+        api.saveMatImage(img, "test_img.jpeg");
 
         return;
     }

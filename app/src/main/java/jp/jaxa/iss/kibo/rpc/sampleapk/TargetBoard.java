@@ -11,7 +11,7 @@ import java.util.List;
 public class TargetBoard {
 
     private MatOfInt boardIDs;
-    private ArrayList<Mat> objPoints;
+    private List<Mat> objPoints;
 
     public List<Mat> getObjPoints() {
         return objPoints;
@@ -22,7 +22,6 @@ public class TargetBoard {
     }
 
     public TargetBoard target1() {
-
         int[] id = new int[] { 1, 2, 3, 4 };
         boardIDs = new MatOfInt();
         boardIDs.fromArray(id);
