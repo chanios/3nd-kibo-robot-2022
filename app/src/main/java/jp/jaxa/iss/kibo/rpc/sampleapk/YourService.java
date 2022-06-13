@@ -10,10 +10,11 @@ import gov.nasa.arc.astrobee.types.Quaternion;
 import org.opencv.aruco.Aruco;
 import org.opencv.aruco.Board;
 import org.opencv.aruco.Dictionary;
-import org.opencv.calib3d.Calib3d;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDouble;
+import org.opencv.core.MatOfPoint3f;
+import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
 
@@ -39,14 +40,13 @@ public class YourService extends KiboRpcService {
 
         this.dict = Aruco.getPredefinedDictionary(Aruco.DICT_5X5_250);
 
+        this.prePlanning();
+
         api.startMission();
 
         int i = 0;
         while (e.goals.size() > i) {
             Goal current = e.goals.get(i);
-            if(i == 1) {
-                this.prePlanning();
-            }
             DoGoal(current);
             i++;
         }
@@ -117,9 +117,11 @@ public class YourService extends KiboRpcService {
             laser_count++;
             if(laser_count == 1) {
                 calibrateWithAruco(new TargetBoard().target1());
+                api.saveMatImage(api.getMatNavCam(), "target_1_with_lazer.jpeg");
                 api.takeTarget1Snapshot();
             } else if(laser_count == 2) {
                 calibrateWithAruco(new TargetBoard().target2());
+                api.saveMatImage(api.getMatNavCam(), "target_2_with_lazer.jpeg");
                 api.takeTarget2Snapshot();
             }
             api.laserControl(false);
@@ -156,22 +158,41 @@ public class YourService extends KiboRpcService {
 
         Aruco.detectMarkers(img, this.dict, corners, ids);
 
+        if(corners.isEmpty()) return;
+
         System.out.println("detectMarkers corners" + corners);
 
         Aruco.estimatePoseBoard(corners, ids, board, cameraMatrix, distCoeffs, rvecs, tvecs);
 
         System.out.println("Board " + "rvecs: " + rvecs + "tvecs: " + tvecs);
 
+        ArrayList<MatOfPoint3f> offset = targetBoard.find_ROI3D(rvecs,tvecs);
+
+        MatOfDouble distortion = new MatOfDouble();
+        distortion.fromArray(co[1]);
+
+        Mat warppedpaper = targetBoard.getWarppedPaper(img, targetBoard.getROI(tvecs, offset, cameraMatrix, distortion));
+
+
+        Mat circles = new Mat();
+        Imgproc.HoughCircles(warppedpaper, circles, Imgproc.HOUGH_GRADIENT, 1, 12);
+
+        System.out.println("HoughCircles "+circles);
+
+        for (int i = 0; i < circles.cols(); i++ ) {
+            double[] data = circles.get(0, i);
+            System.out.println("Circle " + i + " x: " + data[0] + " y: " + data[1]);
+        }
+
         Aruco.drawAxis(img, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1f);
-
-        Mat rot = new Mat();
-
-        Calib3d.Rodrigues(rvecs, rot);
 
         api.saveMatImage(img, "test_img.jpeg");
 
+        api.saveMatImage(warppedpaper, "warppedpaper.jpeg");
+
         return;
     }
+
 
     private Path getPath(Point a, Point b) {
         System.out.println("Gettings Path from " + a + " to " + b);

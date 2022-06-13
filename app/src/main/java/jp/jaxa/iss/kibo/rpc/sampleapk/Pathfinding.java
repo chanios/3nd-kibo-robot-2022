@@ -11,7 +11,7 @@ public class Pathfinding {
 
     public Environment e;
 
-    double RESOLUTION = 0.05;
+    double RESOLUTION = 0.07;
 
     HashMap<Integer, Node> NODES = new HashMap<>();
 
@@ -92,7 +92,7 @@ public class Pathfinding {
         double dY = Y2-Y1;
         double dZ = Z2-Z1;
 
-        return new Point(X2 + dX * distance, Y2 + dY * distance, Z2 + dZ * distance);
+        return new Point(X1 + (dX * distance), Y1 + (dY * distance), Z1 + (dZ * distance));
     }
     public Path getOptimalPath(Path paths) {
         int i = 0;
@@ -105,23 +105,25 @@ public class Pathfinding {
             Boolean next2_collided = RayCast(current, next2);
 
             if(!next_collided && !next2_collided) { // clear point optimization
+                System.out.println("[PathFinder] Clear Point Detected! Removing" + next);
                 paths.remove(i+1);
                 continue;
             }
-//            if(!next_collided && next2_collided) { // corner point optimization
-//                double factor = 0;
-//                while (factor < 2.0) {
-//                    factor += 0.1;
-//                    Point new_corner_point = getRayPoint(current, next, factor);
-//                    if(!RayCast(next, new_corner_point) && !RayCast(new_corner_point, next2) && !RayCast(current, new_corner_point)) {
-//                        paths.remove(i+1);
-//                        paths.remove(i+2);
-//                        paths.add(i+1,new_corner_point);
-//                        break;
-//                    }
-//                }
-//                continue;
-//            }
+            if(!next_collided && next2_collided && e.distance(next, next2) < 5) { // corner point optimization
+                System.out.println("[PathFinder] Corner Point Detected!");
+                double factor = 1;
+                while (factor < 2) {
+                    factor += 0.05;
+                    Point new_corner_point = getRayPoint(current, next, factor);
+                    System.out.println("Created new ray point "+new_corner_point);
+                    if(e.CanGo(new_corner_point) && !RayCast(new_corner_point, next2) && !RayCast(current, new_corner_point)) {
+                        paths.remove(i+1);
+                        paths.remove(i+1);
+                        paths.add(i+1,new_corner_point);
+                        break;
+                    }
+                }
+            }
             i++;
         }
 
@@ -134,7 +136,6 @@ public class Pathfinding {
             node = node.parent;
             path.addFirst(node.point);
         }
-        getOptimalPath(path);
         getOptimalPath(path);
         path.removeFirst();
         path.setComplete(true);

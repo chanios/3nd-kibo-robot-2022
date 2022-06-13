@@ -91,6 +91,12 @@ public class Environment {
         double dz = Math.max(box.z_min - point.getZ(), point.getZ() - box.z_max);
         return Math.sqrt(dx*dx + dy*dy + dz*dz);
     }
+    public double distance(Point a, Point b) {
+        double dx = b.getX() - a.getX();
+        double dy = b.getY() - a.getY();
+        double dz = b.getZ() - a.getZ();
+        return Math.sqrt(dx*dx + dy*dy + dz*dz);
+    }
     public boolean isPointInsideAABB(Point point,Box box) {
         return (point.getX() >= box.x_min && point.getX() <= box.x_max) &&
                 (point.getY() >= box.y_min && point.getY() <= box.y_max) &&
