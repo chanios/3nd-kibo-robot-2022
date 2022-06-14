@@ -202,8 +202,16 @@ public class YourService extends KiboRpcService {
         Calib3d.Rodrigues(rvecs, rot_mat);
 
         double world_pos_x = rot_mat.get(0, 0)[0] * tvecs.get(0,0)[0];
+        double world_pos_y = rot_mat.get(1, 0)[0] * tvecs.get(1,0)[0];
+        double world_pos_z = rot_mat.get(2, 0)[0] * tvecs.get(2,0)[0];
+        System.out.println("rot_mat "+rot_mat.get(0, 0)[0]);
+        System.out.println("tvecs "+tvecs.get(0,0)[0]);
 
-        Point targetPoint = new Point(world_pos.);
+        System.out.println("world_pos_x "+world_pos_x);
+        System.out.println("world_pos_y "+world_pos_y);
+        System.out.println("world_pos_z "+world_pos_z);
+
+        api.relativeMoveTo(new Point(world_pos_x, world_pos_y, world_pos_z), new Quaternion(0f, 0f, 0f, 0f), true);
 
         Aruco.drawAxis(img, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1f);
 
