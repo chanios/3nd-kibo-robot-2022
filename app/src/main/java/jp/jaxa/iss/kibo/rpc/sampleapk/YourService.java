@@ -10,13 +10,19 @@ import gov.nasa.arc.astrobee.types.Quaternion;
 import org.opencv.aruco.Aruco;
 import org.opencv.aruco.Board;
 import org.opencv.aruco.Dictionary;
+import org.opencv.calib3d.Calib3d;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDouble;
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint3f;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.imgproc.Moments;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Class meant to handle commands from the Ground Data System and execute them in Astrobee
@@ -172,23 +178,39 @@ public class YourService extends KiboRpcService {
         distortion.fromArray(co[1]);
 
         Mat warppedpaper = targetBoard.getWarppedPaper(img, targetBoard.getROI(tvecs, offset, cameraMatrix, distortion));
+        Mat warppedpaper_t = new Mat();
 
+        Imgproc.threshold(warppedpaper, warppedpaper_t, 0, 255, Imgproc.THRESH_BINARY_INV + Imgproc.THRESH_OTSU);
 
-        Mat circles = new Mat();
-        Imgproc.HoughCircles(warppedpaper, circles, Imgproc.HOUGH_GRADIENT, 1, 12);
+        List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(warppedpaper_t,contours,hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
+        System.out.println("findContours "+contours);
+        System.out.println("hierarchy "+hierarchy);
 
-        System.out.println("HoughCircles "+circles);
-
-        for (int i = 0; i < circles.cols(); i++ ) {
-            double[] data = circles.get(0, i);
-            System.out.println("Circle " + i + " x: " + data[0] + " y: " + data[1]);
+        List<Moments> mu = new ArrayList<Moments>(contours.size());
+        for (int i = 0; i < contours.size(); i++) {
+            mu.add(i, Imgproc.moments(contours.get(i), false));
+            Moments p = mu.get(i);
+            int x = (int) (p.get_m10() / p.get_m00());
+            int y = (int) (p.get_m01() / p.get_m00());
+            Imgproc.circle(warppedpaper, new org.opencv.core.Point(x, y), 4, new Scalar(255,49,0,255));
+            System.out.println("Contour " + i + " x: " + x + " y: " + y);
         }
+
+        Mat rot_mat = new Mat();
+        Calib3d.Rodrigues(rvecs, rot_mat);
+
+        double world_pos_x = rot_mat.get(0, 0)[0] * tvecs.get(0,0)[0];
+
+        Point targetPoint = new Point(world_pos.);
 
         Aruco.drawAxis(img, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1f);
 
         api.saveMatImage(img, "test_img.jpeg");
 
         api.saveMatImage(warppedpaper, "warppedpaper.jpeg");
+        api.saveMatImage(warppedpaper_t, "warppedpaper_t.jpeg");
 
         return;
     }
