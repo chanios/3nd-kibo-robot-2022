@@ -122,11 +122,11 @@ public class YourService extends KiboRpcService {
             api.laserControl(true);
             laser_count++;
             if(laser_count == 1) {
-                calibrateWithAruco(new TargetBoard().target1());
+                calibrateWithAruco(new TargetBoard().target1(), laser_count);
                 api.saveMatImage(api.getMatNavCam(), "target_1_with_lazer.jpeg");
                 api.takeTarget1Snapshot();
             } else if(laser_count == 2) {
-                calibrateWithAruco(new TargetBoard().target2());
+                calibrateWithAruco(new TargetBoard().target2(), laser_count);
                 api.saveMatImage(api.getMatNavCam(), "target_2_with_lazer.jpeg");
                 api.takeTarget2Snapshot();
             }
@@ -134,7 +134,7 @@ public class YourService extends KiboRpcService {
         }
         return;
     }
-    private void calibrateWithAruco(TargetBoard targetBoard) {
+    private void calibrateWithAruco(TargetBoard targetBoard, int ti) {
         // get a camera image
         Mat img = api.getMatNavCam();
 
@@ -201,24 +201,24 @@ public class YourService extends KiboRpcService {
         Mat rot_mat = new Mat();
         Calib3d.Rodrigues(rvecs, rot_mat);
 
-        double world_pos_x = rot_mat.get(0, 0)[0] * tvecs.get(0,0)[0];
-        double world_pos_y = rot_mat.get(1, 0)[0] * tvecs.get(1,0)[0];
-        double world_pos_z = rot_mat.get(2, 0)[0] * tvecs.get(2,0)[0];
+        double cvcam_pos_x = rot_mat.get(0, 0)[0] * tvecs.get(0,0)[0];
+        double cvcam_pos_y = rot_mat.get(1, 0)[0] * tvecs.get(1,0)[0];
+        double cvcam_pos_z = rot_mat.get(2, 0)[0] * tvecs.get(2,0)[0];
         System.out.println("rot_mat "+rot_mat.get(0, 0)[0]);
         System.out.println("tvecs "+tvecs.get(0,0)[0]);
 
-        System.out.println("world_pos_x "+world_pos_x);
-        System.out.println("world_pos_y "+world_pos_y);
-        System.out.println("world_pos_z "+world_pos_z);
+        System.out.println("cvcam_pos_x "+cvcam_pos_x);
+        System.out.println("cvcam_pos_y "+cvcam_pos_y);
+        System.out.println("cvcam_pos_z "+cvcam_pos_z);
 
-        api.relativeMoveTo(new Point(world_pos_x, world_pos_y, world_pos_z), new Quaternion(0f, 0f, 0f, 0f), true);
+        api.relativeMoveTo(new Point(cvcam_pos_x, cvcam_pos_z, cvcam_pos_y), api.getRobotKinematics().getOrientation(), true);
 
         Aruco.drawAxis(img, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1f);
 
-        api.saveMatImage(img, "test_img.jpeg");
+        api.saveMatImage(img, ti+"test_img.jpeg");
 
-        api.saveMatImage(warppedpaper, "warppedpaper.jpeg");
-        api.saveMatImage(warppedpaper_t, "warppedpaper_t.jpeg");
+        api.saveMatImage(warppedpaper, ti+"warppedpaper.jpeg");
+        api.saveMatImage(warppedpaper_t, ti+"warppedpaper_t.jpeg");
 
         return;
     }
