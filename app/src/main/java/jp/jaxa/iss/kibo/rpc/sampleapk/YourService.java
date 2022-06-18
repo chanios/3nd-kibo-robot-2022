@@ -120,13 +120,14 @@ public class YourService extends KiboRpcService {
             }
         } else if(goal.type.equals("laser")) {
             api.laserControl(true);
+            Quaternion quaternion = api.getRobotKinematics().getOrientation();
             laser_count++;
             if(laser_count == 1) {
-                calibrateWithAruco(new TargetBoard().target1(), laser_count);
+                calibrateWithAruco(new TargetBoard().target1(), laser_count, quaternion);
                 api.saveMatImage(api.getMatNavCam(), "target_1_with_lazer.jpeg");
                 api.takeTarget1Snapshot();
             } else if(laser_count == 2) {
-                calibrateWithAruco(new TargetBoard().target2(), laser_count);
+                calibrateWithAruco(new TargetBoard().target1(), laser_count, quaternion);
                 api.saveMatImage(api.getMatNavCam(), "target_2_with_lazer.jpeg");
                 api.takeTarget2Snapshot();
             }
@@ -134,7 +135,7 @@ public class YourService extends KiboRpcService {
         }
         return;
     }
-    private void calibrateWithAruco(TargetBoard targetBoard, int ti) {
+    private void calibrateWithAruco(TargetBoard targetBoard, int ti, Quaternion quaternion) {
         // get a camera image
         Mat img = api.getMatNavCam();
 
@@ -200,10 +201,22 @@ public class YourService extends KiboRpcService {
 
         Mat rot_mat = new Mat();
         Calib3d.Rodrigues(rvecs, rot_mat);
+//        double lazer_offset_x = 0.0125;
+//        double lazer_offset_y = -0.0994;
+//        double lazer_offset_z = 0.0285;
 
-        double cvcam_pos_x = rot_mat.get(0, 0)[0] * tvecs.get(0,0)[0];
-        double cvcam_pos_y = rot_mat.get(1, 0)[0] * tvecs.get(1,0)[0];
-        double cvcam_pos_z = rot_mat.get(2, 0)[0] * tvecs.get(2,0)[0];
+        double lazer_offset_x = 0;
+        double lazer_offset_y = 0;
+        double lazer_offset_z = 0;
+//        double cvcam_pos_x = rot_mat.get(0, 0)[0] * tvecs.get(0,0)[0];
+//        double cvcam_pos_y = rot_mat.get(1, 0)[0] * tvecs.get(1,0)[0];
+//        double cvcam_pos_z = rot_mat.get(2, 0)[0] * tvecs.get(2,0)[0];
+
+
+        double cvcam_pos_x = tvecs.get(0,0)[0];
+        double cvcam_pos_y = tvecs.get(1,0)[0];
+        double cvcam_pos_z = tvecs.get(2,0)[0];
+
         System.out.println("rot_mat "+rot_mat.get(0, 0)[0]);
         System.out.println("tvecs "+tvecs.get(0,0)[0]);
 
@@ -211,7 +224,8 @@ public class YourService extends KiboRpcService {
         System.out.println("cvcam_pos_y "+cvcam_pos_y);
         System.out.println("cvcam_pos_z "+cvcam_pos_z);
 
-        api.relativeMoveTo(new Point(cvcam_pos_x, cvcam_pos_z, cvcam_pos_y), api.getRobotKinematics().getOrientation(), true);
+        if(ti == 1) api.relativeMoveTo(new Point(cvcam_pos_y + lazer_offset_z, cvcam_pos_x + lazer_offset_y, 0), quaternion, true);
+        if(ti == 2) api.relativeMoveTo(new Point(cvcam_pos_x + lazer_offset_y, 0, cvcam_pos_y + lazer_offset_z), quaternion, true);
 
         Aruco.drawAxis(img, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1f);
 
