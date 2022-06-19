@@ -120,14 +120,13 @@ public class YourService extends KiboRpcService {
             }
         } else if(goal.type.equals("laser")) {
             api.laserControl(true);
-            Quaternion quaternion = api.getRobotKinematics().getOrientation();
             laser_count++;
             if(laser_count == 1) {
-                calibrateWithAruco(new TargetBoard().target1(), laser_count, quaternion);
+                calibrateWithAruco(new TargetBoard().target1(), laser_count, goal.orientation);
                 api.saveMatImage(api.getMatNavCam(), "target_1_with_lazer.jpeg");
                 api.takeTarget1Snapshot();
             } else if(laser_count == 2) {
-                calibrateWithAruco(new TargetBoard().target1(), laser_count, quaternion);
+                calibrateWithAruco(new TargetBoard().target2(), laser_count, goal.orientation);
                 api.saveMatImage(api.getMatNavCam(), "target_2_with_lazer.jpeg");
                 api.takeTarget2Snapshot();
             }
@@ -171,6 +170,8 @@ public class YourService extends KiboRpcService {
 
         Aruco.estimatePoseBoard(corners, ids, board, cameraMatrix, distCoeffs, rvecs, tvecs);
 
+        if(rvecs.empty() || tvecs.empty()) return;
+
         System.out.println("Board " + "rvecs: " + rvecs + "tvecs: " + tvecs);
 
         ArrayList<MatOfPoint3f> offset = targetBoard.find_ROI3D(rvecs,tvecs);
@@ -189,25 +190,24 @@ public class YourService extends KiboRpcService {
         System.out.println("findContours "+contours);
         System.out.println("hierarchy "+hierarchy);
 
-        List<Moments> mu = new ArrayList<Moments>(contours.size());
-        for (int i = 0; i < contours.size(); i++) {
-            mu.add(i, Imgproc.moments(contours.get(i), false));
-            Moments p = mu.get(i);
-            int x = (int) (p.get_m10() / p.get_m00());
-            int y = (int) (p.get_m01() / p.get_m00());
-            Imgproc.circle(warppedpaper, new org.opencv.core.Point(x, y), 4, new Scalar(255,49,0,255));
-            System.out.println("Contour " + i + " x: " + x + " y: " + y);
-        }
+//        for (int i = 0; i < contours.size(); i++) {
+//            mu.add(i, Imgproc.moments(contours.get(i), false));
+//            Moments p = mu.get(i);
+//            int x = (int) (p.get_m10() / p.get_m00());
+//            int y = (int) (p.get_m01() / p.get_m00());
+//            Imgproc.circle(warppedpaper, new org.opencv.core.Point(x, y), 4, new Scalar(255,49,0,255));
+//            System.out.println("Contour " + i + " x: " + x + " y: " + y);
+//        }
 
         Mat rot_mat = new Mat();
         Calib3d.Rodrigues(rvecs, rot_mat);
-//        double lazer_offset_x = 0.0125;
-//        double lazer_offset_y = -0.0994;
-//        double lazer_offset_z = 0.0285;
+        double lazer_offset_x = 0.0125;
+        double lazer_offset_y = -0.0994;
+        double lazer_offset_z = 0.0285;
 
-        double lazer_offset_x = 0;
-        double lazer_offset_y = 0;
-        double lazer_offset_z = 0;
+//        double lazer_offset_x = 0;
+//        double lazer_offset_y = 0;
+//        double lazer_offset_z = 0;
 //        double cvcam_pos_x = rot_mat.get(0, 0)[0] * tvecs.get(0,0)[0];
 //        double cvcam_pos_y = rot_mat.get(1, 0)[0] * tvecs.get(1,0)[0];
 //        double cvcam_pos_z = rot_mat.get(2, 0)[0] * tvecs.get(2,0)[0];
@@ -217,6 +217,7 @@ public class YourService extends KiboRpcService {
         double cvcam_pos_y = tvecs.get(1,0)[0];
         double cvcam_pos_z = tvecs.get(2,0)[0];
 
+        System.out.println("rot_mat "+rot_mat);
         System.out.println("rot_mat "+rot_mat.get(0, 0)[0]);
         System.out.println("tvecs "+tvecs.get(0,0)[0]);
 
@@ -225,7 +226,20 @@ public class YourService extends KiboRpcService {
         System.out.println("cvcam_pos_z "+cvcam_pos_z);
 
         if(ti == 1) api.relativeMoveTo(new Point(cvcam_pos_y + lazer_offset_z, cvcam_pos_x + lazer_offset_y, 0), quaternion, true);
-        if(ti == 2) api.relativeMoveTo(new Point(cvcam_pos_x + lazer_offset_y, 0, cvcam_pos_y + lazer_offset_z), quaternion, true);
+        if(ti == 2) {
+            List<Moments> mu = new ArrayList<Moments>(contours.size());
+
+            Moments p = Imgproc.moments(contours.get(0), false);
+            int con_x = (int) (p.get_m10() / p.get_m00());
+            int con_y = (int) (p.get_m01() / p.get_m00());
+
+            double con_x_from_center = con_x - (warppedpaper.width() / 2);
+            double con_y_from_center = con_y -(warppedpaper.height() / 2);
+            System.out.println("Contour " + " x: " + con_x_from_center + " y: " + con_y_from_center);
+            System.out.println(con_x_from_center * rot_mat.get(0, 0)[0]);
+            System.out.println(con_y_from_center * tvecs.get(1,0)[0]);
+            api.relativeMoveTo(new Point((con_x_from_center * rot_mat.get(0, 0)[0]) + cvcam_pos_x + lazer_offset_y, 0, (con_y_from_center * rot_mat.get(1,0)[0]) + cvcam_pos_y + lazer_offset_z), quaternion, true);
+        }
 
         Aruco.drawAxis(img, cameraMatrix, distCoeffs, rvecs, tvecs, 0.1f);
 

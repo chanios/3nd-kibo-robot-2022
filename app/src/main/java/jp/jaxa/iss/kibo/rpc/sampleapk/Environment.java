@@ -37,7 +37,8 @@ public class Environment {
 
         // Look For Nearby ar tag and laser em
         this.goals.add(new Goal(
-                "laser"
+                "laser",
+                new Quaternion(0f, 0.707f, 0f, 0.707f)
         ));
 
 
@@ -51,7 +52,8 @@ public class Environment {
 
         // Look For Nearby ar tag and laser em
         this.goals.add(new Goal(
-                "laser"
+                "laser",
+                new Quaternion(0f, 0f, -0.707f, 0.707f)
         ));
 
         // Point2

@@ -232,8 +232,8 @@ public class TargetBoard {
         Mat rot = new Mat();
         Calib3d.Rodrigues(rvec, rot);
 
-        double[][] offset_corner = { new double[] { 0.075f, -0.075f, -0.075f, 0.075f },
-                new double[] { 0.0625f, 0.0625f, -0.0625f, -0.0625f }, new double[] { 0f, 0f, 0f, 0f }, };
+        double[][] offset_corner = { new double[] { 0.0875f, -0.0875f, -0.0875f, 0.0875f },
+                new double[] { 0.0665f, 0.0665f, -0.0665f, -0.0665f }, new double[] { 0f, 0f, 0f, 0f }, };
 
         double[][] rotationMatrix = { new double[] { rot.get(0, 0)[0], rot.get(0, 1)[0], rot.get(0, 2)[0] },
                 new double[] { rot.get(1, 0)[0], rot.get(1, 1)[0], rot.get(1, 2)[0] },

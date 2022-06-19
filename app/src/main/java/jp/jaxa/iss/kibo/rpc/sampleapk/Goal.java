@@ -13,6 +13,10 @@ public class Goal {
         this.type = type;
     }
 
+    public Goal(String type, Quaternion orientation) {
+        this.orientation = orientation;
+        this.type = type;
+    }
     public Goal(Point position, Quaternion orientation, String type) {
         this.position = position;
         this.orientation = orientation;
